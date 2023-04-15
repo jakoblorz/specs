@@ -9,6 +9,9 @@ import (
 	"github.com/jakoblorz/scf"
 )
 
+// https://github.com/getkin/kin-openapi/blob/master/openapi3/operation_test.go
+// https://github.com/getkin/kin-openapi/blob/master/openapi3gen/simple_test.go
+
 func Generate[T interface{}](r scf.Registry[T]) (t *openapi3.T) {
 	t = new(openapi3.T)
 	g := openapi3gen.NewGenerator()
