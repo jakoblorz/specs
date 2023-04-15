@@ -9,6 +9,9 @@ type Endpoint[T interface{}] struct {
 	Title       string
 	Description string
 
+	Deprecated bool
+	Tags       []string
+
 	Handler T
 
 	Protocol string
@@ -19,8 +22,14 @@ type Endpoint[T interface{}] struct {
 	Parameters interface{}
 	Query      interface{}
 
-	Consumes interface{}
-	Produces map[int]interface{}
+	Consumes []struct {
+		MediaType string
+		Value     interface{}
+	}
+	Produces map[int]struct {
+		MediaType string
+		Value     interface{}
+	}
 }
 
 type builder[T interface{}] struct {
@@ -34,6 +43,16 @@ func (b *builder[T]) Title(title string) *builder[T] {
 
 func (b *builder[T]) Description(description string) *builder[T] {
 	b.e.Description = description
+	return b
+}
+
+func (b *builder[T]) Deprecated() *builder[T] {
+	b.e.Deprecated = true
+	return b
+}
+
+func (b *builder[T]) Tags(tags ...string) *builder[T] {
+	b.e.Tags = tags
 	return b
 }
 
@@ -57,16 +76,49 @@ func (b *builder[T]) Query(query interface{}) *builder[T] {
 	return b
 }
 
-func (b *builder[T]) Consumes(consumes interface{}) *builder[T] {
-	b.e.Consumes = consumes
+func (b *builder[T]) Consumes(data interface{}, mediaTypes ...string) *builder[T] {
+	if b.e.Consumes == nil {
+		b.e.Consumes = []struct {
+			MediaType string
+			Value     interface{}
+		}{}
+	}
+
+	if len(mediaTypes) == 0 {
+		mediaTypes = []string{"application/json"}
+	}
+	for _, mediaType := range mediaTypes {
+		b.e.Consumes = append(b.e.Consumes, struct {
+			MediaType string
+			Value     interface{}
+		}{
+			MediaType: mediaType,
+			Value:     data,
+		})
+	}
 	return b
 }
 
-func (b *builder[T]) Produces(status int, data interface{}) *builder[T] {
+func (b *builder[T]) Produces(status int, data interface{}, mediaTypes ...string) *builder[T] {
 	if b.e.Produces == nil {
-		b.e.Produces = map[int]interface{}{}
+		b.e.Produces = map[int]struct {
+			MediaType string
+			Value     interface{}
+		}{}
 	}
-	b.e.Produces[status] = data
+
+	if len(mediaTypes) == 0 {
+		mediaTypes = []string{"application/json"}
+	}
+	for _, mediaType := range mediaTypes {
+		b.e.Produces[status] = struct {
+			MediaType string
+			Value     interface{}
+		}{
+			MediaType: mediaType,
+			Value:     data,
+		}
+	}
 	return b
 }
 
@@ -79,12 +131,12 @@ var (
 )
 
 func Register(method string, path string, handler http.Handler) *builder[http.Handler] {
-	return httpRegistry.Register(method, path, handler)
+	return httpRegistry.Bind(method, path, handler)
 }
 
 type Registry[T interface{}] map[string]Endpoint[T]
 
-func (r *Registry[T]) Register(method string, path string, handler T) *builder[T] {
+func (r *Registry[T]) Bind(method string, path string, handler T) *builder[T] {
 	e := Endpoint[T]{Method: method, Path: path, Handler: handler}
 	(*r)[fmt.Sprintf("%s-%s", e.Method, e.Path)] = e
 	return &builder[T]{
