@@ -10,14 +10,14 @@ func init() {
 		Description("Creates a new user").
 		Tags("api", "users").
 		Payload(CreateNewUserRequest{}).
-		Response(201, User{}, "User created")
+		Response(201, GetUserResponse{}, "User created")
 }
 
 type CreateNewUserRequest struct {
 	Name string `json:"name" validate:"required"`
 }
 
-type User struct {
+type CreateNewUserResponse struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Nick string `json:"nick"`
@@ -28,7 +28,7 @@ func Handle_CreateNewUserRequest(c *gin.Context) {
 		payload = GetPayload[CreateNewUserRequest](c)
 	)
 
-	c.JSON(201, User{
+	c.JSON(201, CreateNewUserResponse{
 		ID:   "abc",
 		Name: payload.Name,
 		Nick: payload.Name + "nick",
@@ -36,7 +36,34 @@ func Handle_CreateNewUserRequest(c *gin.Context) {
 }
 
 type DetailedURLParameters struct {
-	UserID string `json:"id"`
+	UserID string `json:"id" validate:"required"`
+}
+
+func init() {
+	router.GET("/api/users/{id}", Handle_GetUserRequest).
+		Title("Get a User").
+		Description("Get a user").
+		Tags("api", "users").
+		Parameters(DetailedURLParameters{}).
+		Response(200, GetUserResponse{}, "User found")
+}
+
+type GetUserResponse struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Nick string `json:"nick"`
+}
+
+func Handle_GetUserRequest(c *gin.Context) {
+	var (
+		params = GetParams[DetailedURLParameters](c)
+	)
+
+	c.JSON(200, GetUserResponse{
+		ID:   params.UserID,
+		Name: "John Doe",
+		Nick: "John Doe" + "nick",
+	})
 }
 
 func init() {
@@ -54,6 +81,7 @@ type UpdateUserRequest struct {
 }
 
 type UpdateUserResponse struct {
+	ID   string `json:"id"`
 	Name string `json:"name"`
 	Nick string `json:"nick"`
 }
@@ -64,7 +92,7 @@ func Handle_UpdateUserRequest(c *gin.Context) {
 		payload = GetPayload[UpdateUserRequest](c)
 	)
 
-	c.JSON(200, User{
+	c.JSON(200, UpdateUserResponse{
 		ID:   params.UserID,
 		Name: payload.Name,
 		Nick: payload.Name + "nick",

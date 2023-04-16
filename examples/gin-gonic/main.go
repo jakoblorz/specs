@@ -17,6 +17,7 @@ var (
 	URLParamsRegex = regexp.MustCompile(`\{([a-zA-Z0-9]+)\}`)
 )
 
+// safePtrClone returns a pointer to a new instance of the given type.
 func safePtrClone(v interface{}) interface{} {
 	if reflect.TypeOf(v).Kind() == reflect.Ptr {
 		return reflect.New(reflect.TypeOf(v).Elem()).Interface()
@@ -28,7 +29,8 @@ func main() {
 	validate := validator.New()
 
 	r := gin.Default()
-	for _, endpoint := range *api.Router() {
+	for _, endpointPtr := range *api.Router() {
+		endpoint := *endpointPtr
 		r.Handle(endpoint.Method, URLParamsRegex.ReplaceAllString(endpoint.Path, ":$1"), func(c *gin.Context) {
 			if endpoint.Parameters != nil {
 				params := map[string]string{}
@@ -37,8 +39,18 @@ func main() {
 				}
 
 				paramsStruct := safePtrClone(endpoint.Parameters)
-				mapstructure.Decode(params, paramsStruct)
-
+				decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+					TagName: "json",
+					Result:  paramsStruct,
+				})
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, err.Error())
+					return
+				}
+				if err := decoder.Decode(params); err != nil {
+					c.JSON(http.StatusInternalServerError, err.Error())
+					return
+				}
 				if err := validate.Struct(paramsStruct); err != nil {
 					c.JSON(http.StatusBadRequest, err.Error())
 					return
@@ -54,11 +66,15 @@ func main() {
 					c.JSON(http.StatusBadRequest, err.Error())
 					return
 				}
+				if err := validate.Struct(queryStruct); err != nil {
+					c.JSON(http.StatusBadRequest, err.Error())
+					return
+				}
 
 				api.PutQuery(c, queryStruct)
 			}
 
-			if endpoint.Payload != nil {
+			if endpoint.Payload != nil && endpoint.Method != http.MethodGet {
 				mediaType := c.ContentType()
 
 				var bodyAnnotation *scf.Body
@@ -75,6 +91,10 @@ func main() {
 
 				bodyStruct := safePtrClone(bodyAnnotation.Value)
 				if err := c.ShouldBindJSON(bodyStruct); err != nil {
+					c.JSON(http.StatusBadRequest, err.Error())
+					return
+				}
+				if err := validate.Struct(bodyStruct); err != nil {
 					c.JSON(http.StatusBadRequest, err.Error())
 					return
 				}

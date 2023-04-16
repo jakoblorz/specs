@@ -14,6 +14,44 @@ func removeIndirect(t reflect.Type) reflect.Type {
 	return t
 }
 
+type FieldInfo_BSON struct {
+	BSON_TypeIsMarshaler   bool
+	BSON_TypeIsUnmarshaler bool
+	BSON_OmitEmpty         bool
+	BSON_Inline            bool
+}
+
+func (inFieldInfo *FieldInfo_BSON) Resolve(f reflect.StructField) (name string, fieldInfo *FieldInfo_BSON) {
+	bsonTag := f.Tag.Get("bson")
+	if bsonTag == "-" {
+		return
+	}
+	if bsonTag == "" {
+		return
+	}
+
+	fieldInfo = inFieldInfo
+	_, fieldInfo.BSON_TypeIsMarshaler = f.Type.MethodByName("MarshalBSON")
+	_, fieldInfo.BSON_TypeIsUnmarshaler = f.Type.MethodByName("UnmarshalBSON")
+
+	for i, part := range strings.Split(bsonTag, ",") {
+		if i == 0 {
+			if part != "" {
+				name = part
+			}
+		} else {
+			switch part {
+			case "omitempty":
+				fieldInfo.BSON_OmitEmpty = true
+			case "inline":
+				fieldInfo.BSON_Inline = true
+			}
+		}
+	}
+
+	return
+}
+
 type FieldInfo_JSON struct {
 	JSON_TypeIsMarshaler   bool
 	JSON_TypeIsUnmarshaler bool
@@ -58,6 +96,7 @@ type Field struct {
 	Index []int
 
 	*FieldInfo_JSON
+	*FieldInfo_BSON
 }
 
 type Fields []Field
@@ -74,8 +113,11 @@ func (fields Fields) Append(parentIndex []int, t reflect.Type) Fields {
 			continue
 		}
 
-		jsonTag := f.Tag.Get("json")
-		if jsonTag == "-" {
+		var (
+			jsonTag = f.Tag.Get("json")
+			bsonTag = f.Tag.Get("bson")
+		)
+		if jsonTag == "-" && bsonTag == "-" {
 			continue
 		}
 
@@ -83,7 +125,7 @@ func (fields Fields) Append(parentIndex []int, t reflect.Type) Fields {
 		index = append(index, parentIndex...)
 		index = append(index, i)
 
-		if f.Anonymous && jsonTag == "" {
+		if f.Anonymous && (jsonTag == "" || strings.Contains(bsonTag, ",inline")) {
 			fields = fields.Append(index, f.Type)
 			continue
 		}
@@ -97,6 +139,12 @@ func (fields Fields) Append(parentIndex []int, t reflect.Type) Fields {
 			Index: index,
 			Type:  f.Type,
 			Name:  f.Name,
+		}
+
+		var bsonName string
+		bsonName, field.FieldInfo_BSON = new(FieldInfo_BSON).Resolve(f)
+		if bsonName != "" {
+			field.Name = bsonName
 		}
 
 		var jsonName string

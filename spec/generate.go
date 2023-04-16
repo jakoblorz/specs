@@ -13,7 +13,7 @@ func Generate[T interface{}](r scf.Registry[T]) (t *openapi3.T) {
 	t = new(openapi3.T)
 	t.OpenAPI = "3.0.0"
 
-	g := openapi3gen.NewGenerator()
+	schemas := make(openapi3.Schemas)
 	for operationId, endpoint := range r {
 		operation := openapi3.Operation{
 			Tags:        endpoint.Tags,
@@ -24,7 +24,7 @@ func Generate[T interface{}](r scf.Registry[T]) (t *openapi3.T) {
 		}
 
 		if endpoint.Parameters != nil {
-			parameterRef, err := g.NewSchemaRefForValue(endpoint.Parameters, nil)
+			parameterRef, err := openapi3gen.NewSchemaRefForValue(endpoint.Parameters, schemas)
 			if err != nil {
 				panic(err)
 			}
@@ -47,7 +47,7 @@ func Generate[T interface{}](r scf.Registry[T]) (t *openapi3.T) {
 		if endpoint.Method != http.MethodGet {
 			content := make(map[string]*openapi3.MediaType)
 			for _, requestBodyDeclaration := range endpoint.Payload {
-				requestBodyRef, err := g.NewSchemaRefForValue(requestBodyDeclaration.Value, nil)
+				requestBodyRef, err := openapi3gen.NewSchemaRefForValue(requestBodyDeclaration.Value, schemas)
 				if err != nil {
 					panic(err)
 				}
@@ -66,7 +66,7 @@ func Generate[T interface{}](r scf.Registry[T]) (t *openapi3.T) {
 		}
 
 		for status, response := range endpoint.Response {
-			responseRef, err := g.NewSchemaRefForValue(response.Value, nil)
+			responseRef, err := openapi3gen.NewSchemaRefForValue(response.Value, schemas)
 			if err != nil {
 				panic(err)
 			}
@@ -87,6 +87,10 @@ func Generate[T interface{}](r scf.Registry[T]) (t *openapi3.T) {
 		}
 
 		t.AddOperation(endpoint.Path, endpoint.Method, &operation)
+	}
+
+	t.Components = &openapi3.Components{
+		Schemas: schemas,
 	}
 
 	return
