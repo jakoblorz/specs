@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"reflect"
+	"regexp"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -10,6 +11,10 @@ import (
 	"github.com/jakoblorz/scf/examples/gin-gonic/api"
 	"github.com/jakoblorz/scf/spec"
 	"github.com/mitchellh/mapstructure"
+)
+
+var (
+	URLParamsRegex = regexp.MustCompile(`\{([a-zA-Z0-9]+)\}`)
 )
 
 func safePtrClone(v interface{}) interface{} {
@@ -24,7 +29,7 @@ func main() {
 
 	r := gin.Default()
 	for _, endpoint := range *api.Router() {
-		r.Handle(endpoint.Method, endpoint.Path, func(c *gin.Context) {
+		r.Handle(endpoint.Method, URLParamsRegex.ReplaceAllString(endpoint.Path, ":$1"), func(c *gin.Context) {
 			if endpoint.Parameters != nil {
 				params := map[string]string{}
 				for _, param := range c.Params {
