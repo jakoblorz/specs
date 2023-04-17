@@ -125,7 +125,7 @@ func (fields Fields) Append(parentIndex []int, t reflect.Type) Fields {
 		index = append(index, parentIndex...)
 		index = append(index, i)
 
-		if f.Anonymous && (jsonTag == "" || strings.Contains(bsonTag, ",inline")) {
+		if f.Anonymous && (jsonTag == "" || bsonTag == ",inline") {
 			fields = fields.Append(index, f.Type)
 			continue
 		}

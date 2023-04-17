@@ -35,6 +35,36 @@ func Handle_CreateNewUserRequest(c *gin.Context) {
 	})
 }
 
+func init() {
+	router.GET("/api/users", Handle_GetUsersRequest).
+		Title("Get all users").
+		Description("Get all users").
+		Tags("api", "users").
+		Query(GetUsersQueryParameters{}).
+		Response(200, GetUsersResponse{}, "Users found")
+}
+
+type GetUsersQueryParameters struct {
+	Offset int `json:"offset"`
+	Limit  int `json:"limit"`
+}
+
+type GetUsersResponse struct {
+	Total int               `json:"total"`
+	Docs  []GetUserResponse `json:"items"`
+}
+
+func Handle_GetUsersRequest(c *gin.Context) {
+	var (
+		query = GetQuery[GetUsersQueryParameters](c)
+	)
+
+	c.JSON(200, GetUsersResponse{
+		Total: query.Limit,
+		Docs:  []GetUserResponse{},
+	})
+}
+
 type DetailedURLParameters struct {
 	UserID string `json:"id" validate:"required"`
 }
