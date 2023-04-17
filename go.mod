@@ -10,6 +10,7 @@ require (
 	github.com/invopop/yaml v0.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
+	github.com/matoous/go-nanoid/v2 v2.0.0 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/perimeterx/marshmallow v1.1.4 // indirect
 	github.com/stretchr/testify v1.8.2 // indirect

@@ -42,9 +42,9 @@ func PutPayload(c *gin.Context, body interface{}) {
 }
 
 var (
-	router = scf.Registry[gin.HandlerFunc]{}
+	router = scf.NewRegistry[gin.HandlerFunc]()
 )
 
-func Router() *scf.Registry[gin.HandlerFunc] {
-	return &router
+func GetRoutes() scf.Registry[gin.HandlerFunc] {
+	return router.Eject()
 }
