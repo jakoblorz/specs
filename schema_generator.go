@@ -35,19 +35,15 @@ var (
 	maxUint64 = float64(math.MaxUint64)
 )
 
+var (
+	refSchemaRef = openapi3.NewSchemaRef("Ref", openapi3.NewObjectSchema().WithProperty("$ref", openapi3.NewStringSchema().WithMinLength(1)))
+)
+
 type SchemaRefGeneratorOption func(*schemaRefGeneratorOption)
 
 type schemaRefGeneratorOption struct {
-	useAllExportedFields bool
-	throwErrorOnCycle    bool
-
-	typeInfoCache *TypeInfoCache
-}
-
-func UseAllExportedFields() SchemaRefGeneratorOption {
-	return func(opt *schemaRefGeneratorOption) {
-		opt.useAllExportedFields = true
-	}
+	throwErrorOnCycle bool
+	typeInfoCache     *TypeInfoCache
 }
 
 func ThrowErrorOnCycle() SchemaRefGeneratorOption {
@@ -98,7 +94,7 @@ func (g *SchemaRefGenerator) GenerateSchemaRef(v interface{}, schemas openapi3.S
 		return ref, nil
 	}
 
-	ref, err := g.generateSchemaRef(nil, t, "_root", "")
+	ref, err := g.generateSchemaRef(nil, t, "_root", nil)
 	if errors.Is(err, ErrSchemaExcluded) {
 		return nil, nil
 	}
@@ -124,7 +120,7 @@ func (g *SchemaRefGenerator) GenerateSchemaRef(v interface{}, schemas openapi3.S
 	return ref, nil
 }
 
-func (g *SchemaRefGenerator) generateSchemaRef(parents []*TypeInfo, t reflect.Type, name string, tag reflect.StructTag) (*openapi3.SchemaRef, error) {
+func (g *SchemaRefGenerator) generateSchemaRef(parents []*TypeInfo, t reflect.Type, name string, parentField *Field) (*openapi3.SchemaRef, error) {
 	typeInfo := g.options.typeInfoCache.GetTypeInfo(t)
 	for _, parent := range parents {
 		if parent == typeInfo {
@@ -144,7 +140,7 @@ func (g *SchemaRefGenerator) generateSchemaRef(parents []*TypeInfo, t reflect.Ty
 		_, a := t.FieldByName("Ref")
 		v, b := t.FieldByName("Value")
 		if a && b {
-			vs, err := g.generateSchemaRef(parents, v.Type, name, tag)
+			vs, err := g.generateSchemaRef(parents, v.Type, name, nil)
 			if err != nil {
 				if errors.Is(err, ErrCycleDetected) && !g.options.throwErrorOnCycle {
 					g.SchemaRefs[vs]++
@@ -172,6 +168,7 @@ func (g *SchemaRefGenerator) generateSchemaRef(parents []*TypeInfo, t reflect.Ty
 		return nil, nil
 	case reflect.Bool:
 		schema.Type = "boolean"
+
 	case reflect.Int:
 		schema.Type = "integer"
 	case reflect.Int8:
@@ -225,7 +222,7 @@ func (g *SchemaRefGenerator) generateSchemaRef(parents []*TypeInfo, t reflect.Ty
 			schema.Format = "byte"
 		} else {
 			schema.Type = "array"
-			items, err := g.generateSchemaRef(parents, t.Elem(), name, tag)
+			items, err := g.generateSchemaRef(parents, t.Elem(), name, nil)
 			if err != nil {
 				if errors.Is(err, ErrCycleDetected) && !g.options.throwErrorOnCycle {
 					items = g.generateCycleSchemaRef(t.Elem(), schema)
@@ -241,7 +238,7 @@ func (g *SchemaRefGenerator) generateSchemaRef(parents []*TypeInfo, t reflect.Ty
 
 	case reflect.Map:
 		schema.Type = "object"
-		additionalProperties, err := g.generateSchemaRef(parents, t.Elem(), name, tag)
+		additionalProperties, err := g.generateSchemaRef(parents, t.Elem(), name, nil)
 		if err != nil {
 			if errors.Is(err, ErrCycleDetected) && !g.options.throwErrorOnCycle {
 				additionalProperties = g.generateCycleSchemaRef(t.Elem(), schema)
@@ -260,34 +257,8 @@ func (g *SchemaRefGenerator) generateSchemaRef(parents []*TypeInfo, t reflect.Ty
 			schema.Format = "date-time"
 		} else {
 			for _, fieldInfo := range typeInfo.Fields {
-				if fieldInfo.FieldInfo_JSON == nil && !g.options.useAllExportedFields {
-					continue
-				}
 				fieldName, fType := fieldInfo.Name, fieldInfo.Type
-				if fieldInfo.FieldInfo_JSON == nil && g.options.useAllExportedFields {
-					// Handle anonymous fields/embedded structs
-					if t.Field(fieldInfo.Index[0]).Anonymous {
-						ref, err := g.generateSchemaRef(parents, fType, fieldName, tag)
-						if err != nil {
-							if errors.Is(err, ErrCycleDetected) && !g.options.throwErrorOnCycle {
-								ref = g.generateCycleSchemaRef(fType, schema)
-							} else {
-								return nil, err
-							}
-						}
-						if ref != nil {
-							g.SchemaRefs[ref]++
-							schema.WithPropertyRef(fieldName, ref)
-						}
-					} else {
-						ff := getStructField(t, fieldInfo)
-						if tag, ok := ff.Tag.Lookup("yaml"); ok && tag != "-" {
-							fieldName, fType = tag, ff.Type
-						}
-					}
-				}
-
-				ref, err := g.generateSchemaRef(parents, fType, fieldName, getStructField(t, fieldInfo).Tag)
+				ref, err := g.generateSchemaRef(parents, fType, fieldName, &fieldInfo)
 				if err != nil {
 					if errors.Is(err, ErrCycleDetected) && !g.options.throwErrorOnCycle {
 						ref = g.generateCycleSchemaRef(fType, schema)
@@ -334,20 +305,4 @@ func (g *SchemaRefGenerator) generateCycleSchemaRef(t reflect.Type, schema *open
 
 	g.componentSchemaRefs[typeName] = struct{}{}
 	return openapi3.NewSchemaRef(fmt.Sprintf("#/components/schemas/%s", typeName), schema)
-}
-
-var refSchemaRef = openapi3.NewSchemaRef("Ref",
-	openapi3.NewObjectSchema().WithProperty("$ref", openapi3.NewStringSchema().WithMinLength(1)))
-
-func getStructField(t reflect.Type, fieldInfo Field) reflect.StructField {
-	var ff reflect.StructField
-	// fieldInfo.Index is an array of indexes starting from the root of the type
-	for i := 0; i < len(fieldInfo.Index); i++ {
-		ff = t.Field(fieldInfo.Index[i])
-		t = ff.Type
-		for t.Kind() == reflect.Ptr {
-			t = t.Elem()
-		}
-	}
-	return ff
 }

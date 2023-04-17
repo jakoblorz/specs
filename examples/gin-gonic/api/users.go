@@ -10,7 +10,7 @@ func init() {
 		Description("Creates a new user").
 		Tags("api", "users").
 		Payload(CreateNewUserRequest{}).
-		Response(201, GetUserResponse{}, "User created")
+		Response(201, CreateNewUserResponse{}, "User created")
 }
 
 type CreateNewUserRequest struct {

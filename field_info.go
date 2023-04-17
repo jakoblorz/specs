@@ -14,14 +14,14 @@ func removeIndirect(t reflect.Type) reflect.Type {
 	return t
 }
 
-type FieldInfo_BSON struct {
+type fieldInfo_BSON struct {
 	BSON_TypeIsMarshaler   bool
 	BSON_TypeIsUnmarshaler bool
 	BSON_OmitEmpty         bool
 	BSON_Inline            bool
 }
 
-func (inFieldInfo *FieldInfo_BSON) Resolve(f reflect.StructField) (name string, fieldInfo *FieldInfo_BSON) {
+func (inFieldInfo *fieldInfo_BSON) Resolve(f reflect.StructField) (name string, fieldInfo *fieldInfo_BSON) {
 	bsonTag := f.Tag.Get("bson")
 	if bsonTag == "-" {
 		return
@@ -52,14 +52,14 @@ func (inFieldInfo *FieldInfo_BSON) Resolve(f reflect.StructField) (name string, 
 	return
 }
 
-type FieldInfo_JSON struct {
+type fieldInfo_JSON struct {
 	JSON_TypeIsMarshaler   bool
 	JSON_TypeIsUnmarshaler bool
 	JSON_OmitEmpty         bool
 	JSON_String            bool
 }
 
-func (inFieldInfo *FieldInfo_JSON) Resolve(f reflect.StructField) (name string, fieldInfo *FieldInfo_JSON) {
+func (inFieldInfo *fieldInfo_JSON) Resolve(f reflect.StructField) (name string, fieldInfo *fieldInfo_JSON) {
 	jsonTag := f.Tag.Get("json")
 	if jsonTag == "-" {
 		return
@@ -95,8 +95,9 @@ type Field struct {
 	Type  reflect.Type
 	Index []int
 
-	*FieldInfo_JSON
-	*FieldInfo_BSON
+	*fieldInfo_JSON
+	*fieldInfo_BSON
+	*fieldInfo_Validator
 }
 
 type Fields []Field
@@ -138,10 +139,11 @@ func (fields Fields) Append(parentIndex []int, t reflect.Type) Fields {
 			Name:  f.Name,
 		}
 
-		_, field.FieldInfo_BSON = new(FieldInfo_BSON).Resolve(f)
+		_, field.fieldInfo_BSON = new(fieldInfo_BSON).Resolve(f)
+		_, field.fieldInfo_Validator = new(fieldInfo_Validator).Resolve(f)
 
 		var jsonName string
-		jsonName, field.FieldInfo_JSON = new(FieldInfo_JSON).Resolve(f)
+		jsonName, field.fieldInfo_JSON = new(fieldInfo_JSON).Resolve(f)
 		if jsonName != "" {
 			field.Name = jsonName
 		}
