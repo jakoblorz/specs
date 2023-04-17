@@ -113,11 +113,8 @@ func (fields Fields) Append(parentIndex []int, t reflect.Type) Fields {
 			continue
 		}
 
-		var (
-			jsonTag = f.Tag.Get("json")
-			bsonTag = f.Tag.Get("bson")
-		)
-		if jsonTag == "-" && bsonTag == "-" {
+		jsonTag, hasJSONTag := f.Tag.Lookup("json")
+		if hasJSONTag && jsonTag == "-" {
 			continue
 		}
 
@@ -125,7 +122,7 @@ func (fields Fields) Append(parentIndex []int, t reflect.Type) Fields {
 		index = append(index, parentIndex...)
 		index = append(index, i)
 
-		if f.Anonymous && (jsonTag == "" || bsonTag == ",inline") {
+		if f.Anonymous && !hasJSONTag {
 			fields = fields.Append(index, f.Type)
 			continue
 		}
@@ -141,11 +138,7 @@ func (fields Fields) Append(parentIndex []int, t reflect.Type) Fields {
 			Name:  f.Name,
 		}
 
-		var bsonName string
-		bsonName, field.FieldInfo_BSON = new(FieldInfo_BSON).Resolve(f)
-		if bsonName != "" {
-			field.Name = bsonName
-		}
+		_, field.FieldInfo_BSON = new(FieldInfo_BSON).Resolve(f)
 
 		var jsonName string
 		jsonName, field.FieldInfo_JSON = new(FieldInfo_JSON).Resolve(f)
