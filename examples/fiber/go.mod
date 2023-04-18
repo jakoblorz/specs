@@ -3,6 +3,7 @@ module github.com/jakoblorz/scf/examples/fiber
 go 1.18
 
 require (
+	github.com/getkin/kin-openapi v0.115.0
 	github.com/go-playground/validator/v10 v10.12.0
 	github.com/gofiber/fiber/v2 v2.44.0
 	github.com/jakoblorz/scf v0.0.0
@@ -11,7 +12,6 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
-	github.com/getkin/kin-openapi v0.115.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.5 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect

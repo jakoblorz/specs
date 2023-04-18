@@ -1,13 +1,11 @@
 package api
 
 import (
+	"context"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/jakoblorz/scf"
-	"github.com/jakoblorz/scf/examples/fiber/api/params"
-	"github.com/jakoblorz/scf/examples/fiber/api/payload"
-	"github.com/jakoblorz/scf/examples/fiber/api/query"
 	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"reflect"
@@ -26,6 +24,45 @@ func safePtrClone(v interface{}) interface{} {
 		return reflect.New(reflect.TypeOf(v).Elem()).Interface()
 	}
 	return reflect.New(reflect.TypeOf(v)).Interface()
+}
+
+func decorateQuery(c *fiber.Ctx, param interface{}) {
+	ctx := c.UserContext()
+	c.SetUserContext(context.WithValue(ctx, "query", param))
+}
+
+func resolveQuery[T interface{}](c *fiber.Ctx) *T {
+	val := c.UserContext().Value("query")
+	if val == nil {
+		return new(T)
+	}
+	return val.(*T)
+}
+
+func decoratePayload(c *fiber.Ctx, param interface{}) {
+	ctx := c.UserContext()
+	c.SetUserContext(context.WithValue(ctx, "payload", param))
+}
+
+func resolvePayload[T interface{}](c *fiber.Ctx) *T {
+	val := c.UserContext().Value("payload")
+	if val == nil {
+		return new(T)
+	}
+	return val.(*T)
+}
+
+func decorateParams(c *fiber.Ctx, param interface{}) {
+	ctx := c.UserContext()
+	c.SetUserContext(context.WithValue(ctx, "params", param))
+}
+
+func resolveParams[T interface{}](c *fiber.Ctx) *T {
+	val := c.UserContext().Value("params")
+	if val == nil {
+		return new(T)
+	}
+	return val.(*T)
 }
 
 var (
@@ -65,7 +102,7 @@ func Mount(app *fiber.App) {
 					return false
 				}
 
-				params.Decorate(c, paramsStruct)
+				decorateParams(c, paramsStruct)
 				return true
 			}
 		}
@@ -89,7 +126,7 @@ func Mount(app *fiber.App) {
 					return false
 				}
 
-				query.Decorate(c, queryStruct)
+				decorateQuery(c, queryStruct)
 				return true
 			}
 		}
@@ -113,7 +150,7 @@ func Mount(app *fiber.App) {
 					return false
 				}
 
-				payload.Decorate(c, payloadStruct)
+				decoratePayload(c, payloadStruct)
 				return true
 			}
 		}
