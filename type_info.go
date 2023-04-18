@@ -7,11 +7,11 @@ import (
 )
 
 var (
-	DefaultTypeInfoCache = NewTypeInfoCache()
+	defaultTypeInfoCache = NewTypeInfoCache()
 )
 
 func GetTypeInfo(t reflect.Type) *TypeInfo {
-	return DefaultTypeInfoCache.GetTypeInfo(t)
+	return defaultTypeInfoCache.GetTypeInfo(t)
 }
 
 type TypeInfo struct {

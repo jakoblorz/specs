@@ -91,7 +91,7 @@ type SchemaRefGenerator struct {
 
 func NewSchemaRefGenerator(opts ...SchemaRefGeneratorOption) *SchemaRefGenerator {
 	options := &schemaRefGeneratorOption{
-		typeInfoCache:            DefaultTypeInfoCache,
+		typeInfoCache:            defaultTypeInfoCache,
 		schemaAnnotatorMap:       defaultSchemaAnnotatorMap,
 		parentSchemaAnnotatorMap: defaultParentSchemaAnnotatorMap,
 		availableAnnotatorSet:    map[string]struct{}{},
