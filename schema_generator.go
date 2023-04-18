@@ -45,11 +45,27 @@ type SchemaRefGeneratorOption func(*schemaRefGeneratorOption)
 type schemaRefGeneratorOption struct {
 	throwErrorOnCycle bool
 	typeInfoCache     *TypeInfoCache
+
+	schemaAnnotatorMap       map[string]SchemaAnnotatorFunc
+	parentSchemaAnnotatorMap map[string]ParentSchemaAnnotatorFunc
+	availableAnnotatorSet    map[string]struct{}
 }
 
 func ThrowErrorOnCycle() SchemaRefGeneratorOption {
 	return func(opt *schemaRefGeneratorOption) {
 		opt.throwErrorOnCycle = true
+	}
+}
+
+func SchemaAnnotatorMap(schemaAnnotatorMap map[string]SchemaAnnotatorFunc) SchemaRefGeneratorOption {
+	return func(opt *schemaRefGeneratorOption) {
+		opt.schemaAnnotatorMap = schemaAnnotatorMap
+	}
+}
+
+func ParentSchemaAnnotatorMap(parentSchemaAnnotatorMap map[string]ParentSchemaAnnotatorFunc) SchemaRefGeneratorOption {
+	return func(opt *schemaRefGeneratorOption) {
+		opt.parentSchemaAnnotatorMap = parentSchemaAnnotatorMap
 	}
 }
 
@@ -75,10 +91,19 @@ type SchemaRefGenerator struct {
 
 func NewSchemaRefGenerator(opts ...SchemaRefGeneratorOption) *SchemaRefGenerator {
 	options := &schemaRefGeneratorOption{
-		typeInfoCache: DefaultTypeInfoCache,
+		typeInfoCache:            DefaultTypeInfoCache,
+		schemaAnnotatorMap:       defaultSchemaAnnotatorMap,
+		parentSchemaAnnotatorMap: defaultParentSchemaAnnotatorMap,
+		availableAnnotatorSet:    map[string]struct{}{},
 	}
 	for _, applyOption := range opts {
 		applyOption(options)
+	}
+	for parentOperator := range options.parentSchemaAnnotatorMap {
+		options.availableAnnotatorSet[parentOperator] = struct{}{}
+	}
+	for operator := range options.schemaAnnotatorMap {
+		options.availableAnnotatorSet[operator] = struct{}{}
 	}
 
 	return &SchemaRefGenerator{
@@ -274,9 +299,9 @@ func (g *SchemaRefGenerator) generateSchemaRef(parents []*TypeInfo, t reflect.Ty
 				g.SchemaRefs[ref]++
 				schema.WithPropertyRef(fieldName, ref)
 				createFieldTagWalker(fieldInfo.fieldInfo_Validator).Walk(func(fieldTag *FieldTag) {
-					applyAnnotation, hasAnnotator := parentSchemaAnnotatorFuncs[fieldTag.Operator]
+					applyAnnotation, hasAnnotator := g.options.parentSchemaAnnotatorMap[fieldTag.Operator]
 					if !hasAnnotator {
-						if _, isAvailableAnnotator := availableSchemaAnnotators[fieldTag.Operator]; !isAvailableAnnotator {
+						if _, isAvailableAnnotator := g.options.availableAnnotatorSet[fieldTag.Operator]; !isAvailableAnnotator {
 							log.Printf("warn: %s operator is not supported in schema generation", fieldTag.Operator)
 						}
 						return
@@ -299,9 +324,9 @@ func (g *SchemaRefGenerator) generateSchemaRef(parents []*TypeInfo, t reflect.Ty
 
 	if parentField != nil {
 		createFieldTagWalker(parentField.fieldInfo_Validator).Walk(func(fieldTag *FieldTag) {
-			applyAnnotation, hasAnnotator := schemaAnnotatorFuncs[fieldTag.Operator]
+			applyAnnotation, hasAnnotator := g.options.schemaAnnotatorMap[fieldTag.Operator]
 			if !hasAnnotator {
-				if _, isAvailableAnnotator := availableSchemaAnnotators[fieldTag.Operator]; !isAvailableAnnotator {
+				if _, isAvailableAnnotator := g.options.availableAnnotatorSet[fieldTag.Operator]; !isAvailableAnnotator {
 					log.Printf("warn: %s operator is not supported in schema generation", fieldTag.Operator)
 				}
 				return

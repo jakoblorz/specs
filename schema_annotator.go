@@ -8,24 +8,13 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
-var availableSchemaAnnotators = map[string]struct{}{}
-
-func init() {
-	for parentOperator := range parentSchemaAnnotatorFuncs {
-		availableSchemaAnnotators[parentOperator] = struct{}{}
-	}
-	for operator := range schemaAnnotatorFuncs {
-		availableSchemaAnnotators[operator] = struct{}{}
-	}
-}
-
-// parentSchemaAnnotatorFuncs is a map of annotator funcs that apply a certain validation rule to a field's parent openapi3.Schema
+// defaultParentSchemaAnnotatorMap is a map of annotator funcs that apply a certain validation rule to a field's parent openapi3.Schema
 // Keys are taken from here: https://github.com/go-playground/validator/blob/b43d437012ec5766eee3a068f53c6581f8e64282/baked_in.go#L72
-var parentSchemaAnnotatorFuncs = map[string]parentSchemaAnnotatorFunc{
+var defaultParentSchemaAnnotatorMap = map[string]ParentSchemaAnnotatorFunc{
 	"required": requiredAnnotator,
 }
 
-type parentSchemaAnnotatorFunc func(field *Field, schema *openapi3.Schema)
+type ParentSchemaAnnotatorFunc func(field *Field, schema *openapi3.Schema)
 
 func requiredAnnotator(field *Field, schema *openapi3.Schema) {
 	if schema.Required != nil {
@@ -34,11 +23,11 @@ func requiredAnnotator(field *Field, schema *openapi3.Schema) {
 	schema.Required = append(schema.Required, field.Name)
 }
 
-// schemaAnnotatorFuncs is a map of annotator funcs that apply a certain validation rule to an openapi3.Schema
+// defaultSchemaAnnotatorMap is a map of annotator funcs that apply a certain validation rule to an openapi3.Schema
 // Keys are taken from here: https://github.com/go-playground/validator/blob/b43d437012ec5766eee3a068f53c6581f8e64282/baked_in.go#L72
 // The keys were chosen mostly during a quick scan regarding what could be expressed in openapi schemas, either using a regex,
 // enums or other instructions
-var schemaAnnotatorFuncs = map[string]schemaAnnotatorFunc{
+var defaultSchemaAnnotatorMap = map[string]SchemaAnnotatorFunc{
 	"min":                           minAnnotator,
 	"max":                           maxAnnotator,
 	"eq":                            warnAnnotator,
@@ -165,7 +154,7 @@ var schemaAnnotatorFuncs = map[string]schemaAnnotatorFunc{
 	"cron":                          warnAnnotator,
 }
 
-type schemaAnnotatorFunc func(fieldTag *FieldTag, schema *openapi3.Schema)
+type SchemaAnnotatorFunc func(fieldTag *FieldTag, schema *openapi3.Schema)
 
 var (
 	warnAnnotator = func(fieldTag *FieldTag, schema *openapi3.Schema) {
