@@ -5,7 +5,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"github.com/jakoblorz/scf"
+	"github.com/jakoblorz/specs"
 	"github.com/mitchellh/mapstructure"
 	"net/http"
 	"reflect"
@@ -66,7 +66,7 @@ func resolveParams[T interface{}](c *fiber.Ctx) *T {
 }
 
 var (
-	router = scf.NewRegistry[fiber.Handler]()
+	router = specs.NewRegistry[fiber.Handler]()
 )
 
 func Mount(app *fiber.App) {

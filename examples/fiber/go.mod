@@ -1,4 +1,4 @@
-module github.com/jakoblorz/scf/examples/fiber
+module github.com/jakoblorz/specs/examples/fiber
 
 go 1.18
 
@@ -6,7 +6,7 @@ require (
 	github.com/getkin/kin-openapi v0.115.0
 	github.com/go-playground/validator/v10 v10.12.0
 	github.com/gofiber/fiber/v2 v2.44.0
-	github.com/jakoblorz/scf v0.0.0
+	github.com/jakoblorz/specs v0.0.0
 	github.com/mitchellh/mapstructure v1.5.0
 )
 
@@ -43,4 +43,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/jakoblorz/scf => ../..
+replace github.com/jakoblorz/specs => ../..

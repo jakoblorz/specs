@@ -6,7 +6,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/jakoblorz/scf/examples/gin-gonic/api"
+	"github.com/jakoblorz/specs/examples/gin-gonic/api"
 )
 
 func main() {

@@ -1,4 +1,4 @@
-module github.com/jakoblorz/scf
+module github.com/jakoblorz/specs
 
 go 1.18
 

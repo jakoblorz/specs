@@ -8,7 +8,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/jakoblorz/scf"
+	"github.com/jakoblorz/specs"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -63,7 +63,7 @@ func resolvePayload(c *gin.Context, body interface{}) {
 }
 
 var (
-	router = scf.NewRegistry[gin.HandlerFunc]()
+	router = specs.NewRegistry[gin.HandlerFunc]()
 )
 
 func Mount(r *gin.Engine) {

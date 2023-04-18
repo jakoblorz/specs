@@ -1,4 +1,4 @@
-package scf
+package specs
 
 type Response struct {
 	Description string

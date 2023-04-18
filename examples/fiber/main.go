@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gofiber/fiber/v2"
-	"github.com/jakoblorz/scf/examples/fiber/api"
+	"github.com/jakoblorz/specs/examples/fiber/api"
 	"net/http"
 )
 

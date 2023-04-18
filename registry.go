@@ -1,4 +1,4 @@
-package scf
+package specs
 
 import (
 	"fmt"
