@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"reflect"
 	"strings"
@@ -168,7 +169,6 @@ func (g *SchemaRefGenerator) generateSchemaRef(parents []*TypeInfo, t reflect.Ty
 		return nil, nil
 	case reflect.Bool:
 		schema.Type = "boolean"
-
 	case reflect.Int:
 		schema.Type = "integer"
 	case reflect.Int8:
@@ -252,10 +252,11 @@ func (g *SchemaRefGenerator) generateSchemaRef(parents []*TypeInfo, t reflect.Ty
 		}
 
 	case reflect.Struct:
-		if t == timeType {
+		switch t {
+		case timeType:
 			schema.Type = "string"
 			schema.Format = "date-time"
-		} else {
+		default:
 			for _, fieldInfo := range typeInfo.Fields {
 				fieldName, fType := fieldInfo.Name, fieldInfo.Type
 				ref, err := g.generateSchemaRef(parents, fType, fieldName, &fieldInfo)
@@ -266,10 +267,27 @@ func (g *SchemaRefGenerator) generateSchemaRef(parents []*TypeInfo, t reflect.Ty
 						return nil, err
 					}
 				}
-				if ref != nil {
-					g.SchemaRefs[ref]++
-					schema.WithPropertyRef(fieldName, ref)
+				if ref == nil {
+					continue
 				}
+
+				g.SchemaRefs[ref]++
+				schema.WithPropertyRef(fieldName, ref)
+				createFieldTagWalker(fieldInfo.fieldInfo_Validator).Walk(func(fieldTag *FieldTag) {
+					applyAnnotation, hasAnnotator := parentSchemaAnnotatorFuncs[fieldTag.Operator]
+					if !hasAnnotator {
+						if _, isAvailableAnnotator := availableSchemaAnnotators[fieldTag.Operator]; !isAvailableAnnotator {
+							log.Printf("warn: %s operator is not supported in schema generation", fieldTag.Operator)
+						}
+						return
+					}
+					applyAnnotation(&fieldInfo, schema)
+				})
+			}
+
+			// Required only if it has content
+			if len(schema.Required) == 0 {
+				schema.Required = nil
 			}
 
 			// Object only if it has properties
@@ -277,6 +295,20 @@ func (g *SchemaRefGenerator) generateSchemaRef(parents []*TypeInfo, t reflect.Ty
 				schema.Type = "object"
 			}
 		}
+	}
+
+	if parentField != nil {
+		createFieldTagWalker(parentField.fieldInfo_Validator).Walk(func(fieldTag *FieldTag) {
+			applyAnnotation, hasAnnotator := schemaAnnotatorFuncs[fieldTag.Operator]
+			if !hasAnnotator {
+				if _, isAvailableAnnotator := availableSchemaAnnotators[fieldTag.Operator]; !isAvailableAnnotator {
+					log.Printf("warn: %s operator is not supported in schema generation", fieldTag.Operator)
+				}
+				return
+			}
+
+			applyAnnotation(fieldTag, schema)
+		})
 	}
 
 	return openapi3.NewSchemaRef(t.Name(), schema), nil

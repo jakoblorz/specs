@@ -54,7 +54,7 @@ type FieldTag struct {
 	IsBlockEnd  bool // indicates the current Operator represents the last validation in the block
 }
 
-func parseFieldTags(tag string, fieldName string) (firstFieldTag *FieldTag, current *FieldTag) {
+func parseFieldTags(tag string) (firstFieldTag *FieldTag, current *FieldTag) {
 	var t string
 	tags := strings.Split(tag, tagSeparator)
 
@@ -102,7 +102,7 @@ func parseFieldTags(tag string, fieldName string) (firstFieldTag *FieldTag, curr
 				}
 			}
 
-			current.Keys, _ = parseFieldTags(string(b[:len(b)-1]), fieldName)
+			current.Keys, _ = parseFieldTags(string(b[:len(b)-1]))
 			continue
 
 		case endKeysTag:
@@ -163,7 +163,7 @@ func parseFieldTags(tag string, fieldName string) (firstFieldTag *FieldTag, curr
 }
 
 type fieldInfo_Validator struct {
-	ValidateTagChain *FieldTag
+	rootFieldTag *FieldTag
 }
 
 func (inFieldInfo *fieldInfo_Validator) Resolve(f reflect.StructField) (name string, fieldInfo *fieldInfo_Validator) {
@@ -173,6 +173,24 @@ func (inFieldInfo *fieldInfo_Validator) Resolve(f reflect.StructField) (name str
 	}
 
 	fieldInfo = inFieldInfo
-	fieldInfo.ValidateTagChain, _ = parseFieldTags(validateTag, f.Name)
+	fieldInfo.rootFieldTag, _ = parseFieldTags(validateTag)
 	return
+}
+
+type fieldTagWalker struct {
+	rootFieldTag *FieldTag
+}
+
+func createFieldTagWalker(v *fieldInfo_Validator) *fieldTagWalker {
+	r := new(fieldTagWalker)
+	if v != nil {
+		r.rootFieldTag = v.rootFieldTag
+	}
+	return r
+}
+
+func (v *fieldTagWalker) Walk(walkerFunc func(fieldTag *FieldTag)) {
+	for current := v.rootFieldTag; current != nil; current = current.Next {
+		walkerFunc(current)
+	}
 }
