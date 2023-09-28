@@ -12,23 +12,23 @@ var (
 	httpRegistry = registry[http.Handler]{}
 )
 
-func GET(path string, handler http.Handler) *builder[http.Handler] {
+func GET(path string, handler http.Handler) Builder[http.Handler] {
 	return httpRegistry.GET(path, handler)
 }
 
-func POST(path string, handler http.Handler) *builder[http.Handler] {
+func POST(path string, handler http.Handler) Builder[http.Handler] {
 	return httpRegistry.POST(path, handler)
 }
 
-func PUT(path string, handler http.Handler) *builder[http.Handler] {
+func PUT(path string, handler http.Handler) Builder[http.Handler] {
 	return httpRegistry.PUT(path, handler)
 }
 
-func PATCH(path string, handler http.Handler) *builder[http.Handler] {
+func PATCH(path string, handler http.Handler) Builder[http.Handler] {
 	return httpRegistry.PATCH(path, handler)
 }
 
-func DELETE(path string, handler http.Handler) *builder[http.Handler] {
+func DELETE(path string, handler http.Handler) Builder[http.Handler] {
 	return httpRegistry.DELETE(path, handler)
 }
 
@@ -83,7 +83,7 @@ func (r *registry[T]) Eject() Registry[T] {
 	return r.routes
 }
 
-func (r *registry[T]) Build(method string, path string, handler T) *builder[T] {
+func (r *registry[T]) Build(method string, path string, handler T) Builder[T] {
 	operationID := r.generateOperationID(method, path)
 	e := Endpoint[T]{
 		OperationID: operationID,
@@ -99,35 +99,35 @@ func (r *registry[T]) Add(e *Endpoint[T]) {
 	r.routes[e.OperationID] = e
 }
 
-func (r *registry[T]) GET(path string, handler T) *builder[T] {
+func (r *registry[T]) GET(path string, handler T) Builder[T] {
 	return r.Build(http.MethodGet, path, handler)
 }
 
-func (r *registry[T]) POST(path string, handler T) *builder[T] {
+func (r *registry[T]) POST(path string, handler T) Builder[T] {
 	return r.Build(http.MethodPost, path, handler)
 }
 
-func (r *registry[T]) PUT(path string, handler T) *builder[T] {
+func (r *registry[T]) PUT(path string, handler T) Builder[T] {
 	return r.Build(http.MethodPut, path, handler)
 }
 
-func (r *registry[T]) PATCH(path string, handler T) *builder[T] {
+func (r *registry[T]) PATCH(path string, handler T) Builder[T] {
 	return r.Build(http.MethodPatch, path, handler)
 }
 
-func (r *registry[T]) DELETE(path string, handler T) *builder[T] {
+func (r *registry[T]) DELETE(path string, handler T) Builder[T] {
 	return r.Build(http.MethodDelete, path, handler)
 }
 
-func (r *registry[T]) HEAD(path string, handler T) *builder[T] {
+func (r *registry[T]) HEAD(path string, handler T) Builder[T] {
 	return r.Build(http.MethodHead, path, handler)
 }
 
-func (r *registry[T]) OPTIONS(path string, handler T) *builder[T] {
+func (r *registry[T]) OPTIONS(path string, handler T) Builder[T] {
 	return r.Build(http.MethodOptions, path, handler)
 }
 
-func (r *registry[T]) TRACE(path string, handler T) *builder[T] {
+func (r *registry[T]) TRACE(path string, handler T) Builder[T] {
 	return r.Build(http.MethodTrace, path, handler)
 }
 
